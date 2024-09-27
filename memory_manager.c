@@ -52,7 +52,14 @@ void* mem_alloc(size_t size) {
         printf("No suitable block found for allocation.\n");
         return NULL;
     }
-    // Split the block if larger than requested size
+
+    // Check if there is enough memory in the pool for this allocation
+    if (block->size < size) {
+        printf("Not enough memory available for allocation.\n");
+        return NULL;
+    }
+
+    // Split the block if larger than the requested size
     if (block->size > size + BLOCK_SIZE) {
         Block* new_block = (Block*)((char*)block + BLOCK_SIZE + size);
         new_block->size = block->size - size - BLOCK_SIZE;
@@ -61,6 +68,7 @@ void* mem_alloc(size_t size) {
         block->next = new_block;
         block->size = size;
     }
+
     block->free = false;
     return (char*)block + BLOCK_SIZE;  // Return the memory after block metadata
 }
