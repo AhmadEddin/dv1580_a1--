@@ -111,8 +111,8 @@ void list_delete(Node** head, int data) {
 }
 
 // Display the contents of the linked list
-void list_display(Node* head) {
-    Node* temp = head;
+void list_display(Node** head) {
+    Node* temp = *head;
     printf("[");
     while (temp != NULL) {
         printf("%d", temp->data);
@@ -125,9 +125,13 @@ void list_display(Node* head) {
 }
 
 // Search for a node with the specified data
-Node* list_search(Node* head, int data) {
-    Node* current = head;
-    
+Node* list_search(Node** head, int data) {
+    if (*head == NULL) {
+        printf("List is empty.\n");
+        return NULL;
+    }
+    Node* current = *head;
+
     // Traverse the list to find the node
     while (current != NULL) {
         if (current->data == data) {
@@ -135,40 +139,14 @@ Node* list_search(Node* head, int data) {
         }
         current = current->next;
     }
-    return NULL;  // Node not found
-}
-
-// Display nodes within a specific range
-void list_display_range(Node* head, Node* start_node, Node* end_node) {
-    Node* temp = head;
-    bool in_range = false;
-
-    printf("[");
-    while (temp != NULL) {
-        if (temp == start_node) {
-            in_range = true;
-        }
-
-        if (in_range) {
-            printf("%d", temp->data);
-            if (temp->next != NULL && temp != end_node) {
-                printf(", ");
-            }
-        }
-
-        if (temp == end_node) {
-            break;
-        }
-
-        temp = temp->next;
-    }
-    printf("]\n");
+    printf("Node with data %d not found.\n", data);
+    return NULL;
 }
 
 // Count the number of nodes in the linked list
-int list_count_nodes(Node* head) {
+int list_count_nodes(Node** head) {
     int count = 0;
-    Node* temp = head;
+    Node* temp = *head;
     while (temp != NULL) {
         count++;
         temp = temp->next;
@@ -177,8 +155,8 @@ int list_count_nodes(Node* head) {
 }
 
 // Cleanup the entire linked list
-void list_cleanup(Node* head) {
-    Node* current = head;
+void list_cleanup(Node** head) {
+    Node* current = *head;
     Node* next;
 
     while (current != NULL) {
@@ -186,4 +164,6 @@ void list_cleanup(Node* head) {
         mem_free(current);  // Free each node using custom memory manager
         current = next;
     }
+
+    *head = NULL;
 }
