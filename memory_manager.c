@@ -55,7 +55,7 @@ Block* find_free_block_best_fit(size_t size) {
 
 // Allocate memory from the pool using best-fit strategy
 void* mem_alloc(size_t size) {
-    // Check if the total memory requested would exceed the pool size
+    // Check if there's enough total memory available for this allocation
     if (used_memory_size + size + BLOCK_SIZE > total_memory_size) {
         printf("Memory allocation exceeds total available memory.\n");
         return NULL;
@@ -78,7 +78,7 @@ void* mem_alloc(size_t size) {
     }
 
     block->free = false;
-    used_memory_size += size + BLOCK_SIZE;  // Update used memory
+    used_memory_size += block->size + BLOCK_SIZE;  // Update used memory
     return (char*)block + BLOCK_SIZE;  // Return the memory after block metadata
 }
 
