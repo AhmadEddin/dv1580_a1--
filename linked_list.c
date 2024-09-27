@@ -8,9 +8,10 @@
 
 // Define a Node structure for the linked list
 typedef struct Node {
-    uint16_t data;  // Data field
+    uint16_t data;    // Data field, ensure the correct type is used
     struct Node* next;  // Pointer to the next node
 } Node;
+
 
 // Initialize the linked list (set head to NULL)
 void list_init(Node** head) {
@@ -38,6 +39,50 @@ void list_insert(Node** head, int data) {
         temp->next = new_node;
     }
 }
+
+void list_insert_before(Node** head, Node* next_node, int data) {
+    if (*head == NULL || next_node == NULL) {
+        return;  // Handle empty list or invalid next node
+    }
+
+    Node* new_node = (Node*)mem_alloc(sizeof(Node));
+    new_node->data = data;
+    new_node->next = NULL;
+
+    if (*head == next_node) {
+        // Insert at the head of the list
+        new_node->next = *head;
+        *head = new_node;
+    } else {
+        // Traverse the list to find the node before the next_node
+        Node* temp = *head;
+        while (temp != NULL && temp->next != next_node) {
+            temp = temp->next;
+        }
+
+        if (temp == NULL) {
+            printf("Next node not found.\n");
+            mem_free(new_node);
+        } else {
+            new_node->next = next_node;
+            temp->next = new_node;
+        }
+    }
+}
+
+void list_insert_after(Node* prev_node, int data) {
+    if (prev_node == NULL) {
+        printf("Previous node cannot be NULL.\n");
+        return;
+    }
+
+    Node* new_node = (Node*)mem_alloc(sizeof(Node));
+    new_node->data = data;
+    new_node->next = prev_node->next;
+    prev_node->next = new_node;
+}
+
+
 
 // Delete a node from the linked list by value
 void list_delete(Node** head, int data) {
