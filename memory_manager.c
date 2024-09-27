@@ -57,14 +57,14 @@ void* mem_alloc(size_t size) {
         return NULL;
     }
 
-    // Check if the block's size is large enough for the requested size + block metadata
+    // Check if the block is large enough for the requested size + block metadata
     if (block->size < size) {
         printf("Not enough memory available for allocation.\n");
         return NULL;
     }
 
     // If the block is larger than required, split it
-    if (block->size >= size + BLOCK_SIZE + 1) {  // Ensure there's enough space to split
+    if (block->size >= size + BLOCK_SIZE) {  // Ensure enough space to split
         Block* new_block = (Block*)((char*)block + BLOCK_SIZE + size);
         new_block->size = block->size - size - BLOCK_SIZE;
         new_block->free = true;
