@@ -46,18 +46,15 @@ Block* find_free_block(size_t size) {
 
 // Allocate memory from the pool
 void* mem_alloc(size_t size) {
-    if (size == 0) {
-        return NULL;
-    }
-
+    // Check if we have enough total memory left
     Block* block = find_free_block(size);
     if (block == NULL) {
         printf("No suitable block found for allocation.\n");
         return NULL;
     }
 
-    // If the block is larger than required, split it
-    if (block->size >= size + BLOCK_SIZE) {  // Ensure enough space to split
+    // Split the block if larger than requested size
+    if (block->size >= size + BLOCK_SIZE) {
         Block* new_block = (Block*)((char*)block + BLOCK_SIZE + size);
         new_block->size = block->size - size - BLOCK_SIZE;
         new_block->free = true;
@@ -66,8 +63,8 @@ void* mem_alloc(size_t size) {
         block->size = size;
     }
 
-    block->free = false;  // Mark this block as allocated
-    return (char*)block + BLOCK_SIZE;  // Return memory address after block metadata
+    block->free = false;
+    return (char*)block + BLOCK_SIZE;  // Return the memory after block metadata
 }
 
 // Free allocated memory block
