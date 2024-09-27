@@ -14,23 +14,21 @@ typedef struct Block {
 // Global memory pool pointer and memory manager
 static void* memory_pool = NULL;
 static Block* free_list = NULL;
-static size_t total_memory_size = 0; // Total memory size of the pool
-static size_t used_memory_size = 0;  // Currently used memory size
+static size_t total_memory_size = 0;  // Total memory pool size
+static size_t used_memory_size = 0;   // Currently used memory
 
 // Minimum block size to include metadata
 #define BLOCK_SIZE sizeof(Block)
 
 // Initialize memory pool
 void mem_init(size_t size) {
+    total_memory_size = size;
+    used_memory_size = 0;  // Reset used memory
     memory_pool = malloc(size);
     if (memory_pool == NULL) {
         printf("Memory allocation failed.\n");
         return;
     }
-
-    total_memory_size = size;
-    used_memory_size = 0;
-
     // Initializing the whole pool as one free block
     free_list = (Block*)memory_pool;
     free_list->size = size - BLOCK_SIZE;  // Exclude block metadata
@@ -38,7 +36,7 @@ void mem_init(size_t size) {
     free_list->next = NULL;
 }
 
-// Find the best fit block
+// Find the best-fit free block
 Block* find_best_fit_block(size_t size) {
     Block* current = free_list;
     Block* best_fit = NULL;
@@ -46,7 +44,7 @@ Block* find_best_fit_block(size_t size) {
     while (current != NULL) {
         if (current->free && current->size >= size) {
             if (best_fit == NULL || current->size < best_fit->size) {
-                best_fit = current;
+                best_fit = current;  // Find the smallest block that fits
             }
         }
         current = current->next;
@@ -54,7 +52,6 @@ Block* find_best_fit_block(size_t size) {
     return best_fit;
 }
 
-// Allocate memory from the pool
 // Allocate memory from the pool
 void* mem_alloc(size_t size) {
     // Check if there's enough total memory available (accounting for block metadata)
@@ -84,7 +81,7 @@ void* mem_alloc(size_t size) {
     return (char*)block + BLOCK_SIZE;  // Return the memory after the metadata
 }
 
-// Free allocated memory
+// Free allocated memory block
 void mem_free(void* ptr) {
     if (ptr == NULL) return;
 
@@ -106,30 +103,29 @@ void mem_free(void* ptr) {
 // Resize an allocated block
 void* mem_resize(void* ptr, size_t size) {
     if (ptr == NULL) {
-        return mem_alloc(size);  // Allocate new memory if no previous block
+        return mem_alloc(size);  // If the block is NULL, allocate new memory
     }
 
     Block* block = (Block*)((char*)ptr - BLOCK_SIZE);
     if (block->size >= size) {
-        return ptr;  // Current block is big enough
+        return ptr;  // If current block is large enough, keep it
     }
 
-    // Allocate new block and free the old one
-    void* new_ptr = mem_alloc(size);
+    void* new_ptr = mem_alloc(size);  // Allocate new block
     if (new_ptr == NULL) {
         return NULL;  // Failed to allocate
     }
 
-    memcpy(new_ptr, ptr, block->size);  // Copy old data to the new block
+    memcpy(new_ptr, ptr, block->size);  // Copy old data to new block
     mem_free(ptr);  // Free the old block
     return new_ptr;
 }
 
-// Deinitialize memory pool
+// Deinitialize the memory pool
 void mem_deinit() {
     free(memory_pool);
     memory_pool = NULL;
     free_list = NULL;
-    total_memory_size = 0;
     used_memory_size = 0;
+    total_memory_size = 0;
 }
