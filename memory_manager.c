@@ -37,19 +37,23 @@ void mem_init(size_t size) {
     free_list->next = NULL;
 }
 
-// Find a suitable block using the first-fit strategy
-Block* find_free_block(size_t size) {
+// Find a suitable block using the best-fit strategy
+Block* find_free_block_best_fit(size_t size) {
     Block* current = free_list;
+    Block* best_fit = NULL;
+
     while (current != NULL) {
         if (current->free && current->size >= size) {
-            return current;
+            if (best_fit == NULL || current->size < best_fit->size) {
+                best_fit = current;  // Found a smaller, better fit
+            }
         }
         current = current->next;
     }
-    return NULL;
+    return best_fit;
 }
 
-// Allocate memory from the pool
+// Allocate memory from the pool using best-fit strategy
 void* mem_alloc(size_t size) {
     // Check if the total memory requested would exceed the pool size
     if (used_memory_size + size + BLOCK_SIZE > total_memory_size) {
@@ -57,7 +61,7 @@ void* mem_alloc(size_t size) {
         return NULL;
     }
 
-    Block* block = find_free_block(size);
+    Block* block = find_free_block_best_fit(size);
     if (block == NULL) {
         printf("No suitable block found for allocation.\n");
         return NULL;
