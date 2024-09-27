@@ -54,19 +54,26 @@ Block* find_best_fit_block(size_t size) {
 
 // Allocate memory from the pool
 void* mem_alloc(size_t size) {
-    // Check if there's enough total memory available (accounting for block metadata)
+    // Ensure the requested size is non-zero
+    if (size == 0) {
+        printf("Requested memory size is zero.\n");
+        return NULL;
+    }
+
+    // Check if there's enough space left in the memory pool
     if (used_memory_size + size + BLOCK_SIZE > total_memory_size) {
         printf("Memory allocation exceeds total available memory.\n");
         return NULL;
     }
 
+    // Find the best-fit block
     Block* block = find_best_fit_block(size);
     if (block == NULL) {
         printf("No suitable block found for allocation.\n");
         return NULL;
     }
 
-    // If block is larger than needed, split it
+    // Split the block if it's larger than requested size (with metadata overhead)
     if (block->size > size + BLOCK_SIZE) {
         Block* new_block = (Block*)((char*)block + BLOCK_SIZE + size);
         new_block->size = block->size - size - BLOCK_SIZE;
@@ -76,11 +83,15 @@ void* mem_alloc(size_t size) {
         block->size = size;
     }
 
+    // Mark the block as used
     block->free = false;
-    used_memory_size += block->size + BLOCK_SIZE;  // Update used memory size
-    return (char*)block + BLOCK_SIZE;  // Return the memory after the metadata
-}
 
+    // Update the used memory size
+    used_memory_size += block->size + BLOCK_SIZE;
+
+    // Return a pointer to the memory after the block's metadata
+    return (char*)block + BLOCK_SIZE;
+}
 // Free allocated memory block
 void mem_free(void* ptr) {
     if (ptr == NULL) return;
