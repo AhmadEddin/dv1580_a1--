@@ -15,7 +15,7 @@ typedef struct Node {
 // Function declarations for linked list operations
 
 // Initializes the linked list by setting the head to NULL
-void list_insert(Node** head, int data);
+void list_init(Node** head);
 
 // Inserts a new node with the specified data at the end of the list
 void list_insert(Node** head, int data);
