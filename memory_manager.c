@@ -1,54 +1,62 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
 
 // Define a block structure to track free/allocated blocks
 typedef struct Block {
     size_t size;           // Size of the block
     bool free;             // Is the block free?
-    struct Block* next;    // Pointer to the next block
+    struct Block* next;    // Pointer to the next block in the free list
 } Block;
 
 // Global memory pool pointer and memory manager
 static void* memory_pool = NULL;
 static Block* free_list = NULL;
-static size_t total_memory_size = 0;  // Total memory pool size
-static size_t used_memory_size = 0;   // Currently used memory
+
+// Track total memory and used memory
+static size_t total_memory_size = 0;
+static size_t used_memory_size = 0;
 
 // Minimum block size to include metadata
 #define BLOCK_SIZE sizeof(Block)
 
 // Initialize memory pool
 void mem_init(size_t size) {
-    total_memory_size = size;
-    used_memory_size = 0;  // Reset used memory
     memory_pool = malloc(size);
     if (memory_pool == NULL) {
         printf("Memory allocation failed.\n");
         return;
     }
+
     // Initializing the whole pool as one free block
     free_list = (Block*)memory_pool;
     free_list->size = size - BLOCK_SIZE;  // Exclude block metadata
     free_list->free = true;
     free_list->next = NULL;
+
+    total_memory_size = size;
+    used_memory_size = 0;
 }
 
-// Find the best-fit free block
+// Find the best-fit block by traversing the free list
 Block* find_best_fit_block(size_t size) {
-    Block* current = free_list;
     Block* best_fit = NULL;
+    Block* current = free_list;
 
+    // Traverse the free list to find a suitable block
     while (current != NULL) {
+        // Check if the block is free and has enough space for the requested size
         if (current->free && current->size >= size) {
             if (best_fit == NULL || current->size < best_fit->size) {
-                best_fit = current;  // Find the smallest block that fits
+                best_fit = current;
             }
         }
         current = current->next;
     }
+
     return best_fit;
 }
 
@@ -66,39 +74,50 @@ void* mem_alloc(size_t size) {
         return NULL;
     }
 
-    // Find the best-fit block
+    // Find the best-fit block using the best-fit strategy
     Block* block = find_best_fit_block(size);
+
+    // If no suitable block was found, return NULL
     if (block == NULL) {
         printf("No suitable block found for allocation.\n");
         return NULL;
     }
 
-    // Split the block if it's larger than requested size (with metadata overhead)
-    if (block->size > size + BLOCK_SIZE) {
-        Block* new_block = (Block*)((char*)block + BLOCK_SIZE + size);
-        new_block->size = block->size - size - BLOCK_SIZE;
+    // Calculate the remaining size after allocation
+    size_t remaining_size = block->size - size;
+
+    // If there is enough space to split the block
+    if (remaining_size > BLOCK_SIZE) {
+        Block* new_block = (Block*)((char*)block + BLOCK_SIZE + size);  // Split the block
+        new_block->size = remaining_size - BLOCK_SIZE;
         new_block->free = true;
         new_block->next = block->next;
         block->next = new_block;
-        block->size = size;
+        block->size = size;  // Resize the current block
+    } else {
+        // Allocate the entire block if it cannot be split
+        remaining_size = 0;
     }
 
-    // Mark the block as used
+    // Mark the current block as allocated
     block->free = false;
 
     // Update the used memory size
     used_memory_size += block->size + BLOCK_SIZE;
 
-    // Return a pointer to the memory after the block's metadata
+    // Return a pointer to the usable memory (just after the block metadata)
     return (char*)block + BLOCK_SIZE;
 }
+
 // Free allocated memory block
 void mem_free(void* ptr) {
     if (ptr == NULL) return;
 
     Block* block = (Block*)((char*)ptr - BLOCK_SIZE);
     block->free = true;
-    used_memory_size -= block->size + BLOCK_SIZE;  // Update used memory size
+
+    // Update used memory size
+    used_memory_size -= block->size + BLOCK_SIZE;
 
     // Merge adjacent free blocks
     Block* current = free_list;
@@ -137,6 +156,6 @@ void mem_deinit() {
     free(memory_pool);
     memory_pool = NULL;
     free_list = NULL;
-    used_memory_size = 0;
     total_memory_size = 0;
+    used_memory_size = 0;
 }
