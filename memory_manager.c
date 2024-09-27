@@ -55,6 +55,7 @@ Block* find_best_fit_block(size_t size) {
 }
 
 // Allocate memory from the pool
+// Allocate memory from the pool
 void* mem_alloc(size_t size) {
     // Check if there's enough total memory available (accounting for block metadata)
     if (used_memory_size + size + BLOCK_SIZE > total_memory_size) {
