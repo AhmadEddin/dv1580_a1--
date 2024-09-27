@@ -4,7 +4,6 @@
 #include <stdbool.h>
 #include <string.h>
 
-
 // Define a block structure to track free/allocated blocks
 typedef struct Block {
     size_t size;           // Size of the block
@@ -54,12 +53,6 @@ void* mem_alloc(size_t size) {
     Block* block = find_free_block(size);
     if (block == NULL) {
         printf("No suitable block found for allocation.\n");
-        return NULL;
-    }
-
-    // Check if the block is large enough for the requested size + block metadata
-    if (block->size < size) {
-        printf("Not enough memory available for allocation.\n");
         return NULL;
     }
 
@@ -122,4 +115,3 @@ void mem_deinit() {
     memory_pool = NULL;
     free_list = NULL;
 }
-
