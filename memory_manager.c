@@ -99,15 +99,6 @@ void* mem_alloc(size_t size) {
         remaining_size = 0;
     }
 
-    // Mark the current block as allocated
-    block->free = false;
-
-    // Update the used memory size
-    used_memory_size += block->size + BLOCK_SIZE;
-
-    // Return a pointer to the usable memory (just after the block metadata)
-    return (char*)block + BLOCK_SIZE;
-}
 
 // Free allocated memory block
 void mem_free(void* ptr) {
