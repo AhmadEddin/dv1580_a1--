@@ -1,147 +1,194 @@
-#include "linked_list.h"
-#include "memory_manager.h"
 #include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include "memory_manager.h"
+#include "linked_list.h"
 
-void list_init(Node ** head){
-    mem_init(2048);
-    *head = NULL;
-}
-void list_insert(Node** head, int data){
-    Node *new_node = (Node *)mem_alloc(sizeof(Node));
-    if (new_node == NULL) {
-        fprintf(stderr, "Memory allocation failed in list_insert\n");
-        return;
+// Initialize the linked list by allocating memory for 'size' number of nodes
+void list_init(Node** head, size_t size) {
+    *head = (Node*)mem_alloc(sizeof(Node) * size);
+    if (*head == NULL) {
+        printf("Memory allocation failed during list initialization.\n");
     }
-    new_node->data = (uint16_t)data;
-    new_node->next = *head;
+}
 
-    *head = new_node;
-}
-void list_insert_after(Node* prev_node, int data){
-    if (prev_node == NULL) {
-        fprintf(stderr, "Error: The previous node cannot be NULL.\n");
-        return;
-    }
+// Insert a new node at the end of the linked list
+void list_insert(Node** head, uint16_t data) {
     Node* new_node = (Node*)mem_alloc(sizeof(Node));
     if (new_node == NULL) {
-        fprintf(stderr, "Memory allocation failed in list_insert_after\n");
+        printf("Memory allocation for new node failed.\n");
         return;
     }
-    new_node->data = (uint16_t)data;
+    new_node->data = data;
+    new_node->next = NULL;
+
+    if (*head == NULL) {
+        *head = new_node;
+    } else {
+        Node* temp = *head;
+        while (temp->next != NULL) {
+            temp = temp->next;
+        }
+        temp->next = new_node;
+    }
+}
+
+// Insert a new node after a given node
+void list_insert_after(Node* prev_node, uint16_t data) {
+    if (prev_node == NULL) {
+        printf("Previous node cannot be NULL.\n");
+        return;
+    }
+
+    Node* new_node = (Node*)mem_alloc(sizeof(Node));
+    if (new_node == NULL) {
+        printf("Memory allocation failed.\n");
+        return;
+    }
+
+    new_node->data = data;
     new_node->next = prev_node->next;
     prev_node->next = new_node;
 }
 
-void list_insert_before(Node** head, Node* next_node, int data){
-    if (*head == NULL || next_node == NULL || head == NULL) {
-        fprintf(stderr, "Invalid parameter.\n");
+// Insert a new node before a given node
+void list_insert_before(Node** head, Node* next_node, uint16_t data) {
+    if (*head == NULL || next_node == NULL) {
         return;
     }
-    // If next_node is the head of the list, insert at the beginning.
-    if (*head == next_node) {
-        list_insert(head, data);
-        return;
-    }
-    Node *current = *head;
-    Node *prev = NULL;
-    while (current != NULL && current != next_node) {
-        prev = current;
-        current = current->next;
-    }
-    if (current == NULL) {
-        fprintf(stderr, "Error: The specified next node was not found in the list.\n");
-        return;
-    }
-    
+
     Node* new_node = (Node*)mem_alloc(sizeof(Node));
     if (new_node == NULL) {
-        fprintf(stderr, "Memory allocation failed in list_insert_after\n");
+        printf("Memory allocation failed.\n");
         return;
     }
-    new_node->data = (uint16_t)data;
-    new_node->next = next_node;
-    if (prev != NULL)
-    {
-        prev->next = new_node;
+    new_node->data = data;
+
+    if (*head == next_node) {
+        new_node->next = *head;
+        *head = new_node;
+    } else {
+        Node* temp = *head;
+        while (temp != NULL && temp->next != next_node) {
+            temp = temp->next;
+        }
+
+        if (temp != NULL) {
+            new_node->next = next_node;
+            temp->next = new_node;
+        } else {
+            printf("Next node not found in the list.\n");
+            mem_free(new_node);  // Free the memory if insertion fails
+        }
     }
-    
-    
 }
 
-void list_delete(Node** head, int data){
-    if (head == NULL || *head == NULL) {
-        fprintf(stderr, "Error: List is empty or head is NULL.\n");
+// Delete the first node with the specified data from the linked list
+void list_delete(Node** head, uint16_t data) {
+    if (*head == NULL) {
+        printf("List is empty.\n");
         return;
     }
 
-    Node *current = *head;
-    Node *prev = NULL;
+    Node* temp = *head;
+    Node* prev = NULL;
 
+    // Find the node with the given data
+    while (temp != NULL && temp->data != data) {
+        prev = temp;
+        temp = temp->next;
+    }
+
+    // If node with data is not found
+    if (temp == NULL) {
+        printf("Node with data %d not found.\n", data);
+        return;
+    }
+
+    // If node to be deleted is the head
+    if (prev == NULL) {
+        *head = temp->next;
+    } else {
+        prev->next = temp->next;
+    }
+
+    mem_free(temp);  // Free the memory of the node being deleted
+}
+
+// Search for a node with the specified data and return a pointer to it
+Node* list_search(Node** head, uint16_t data) {
+    Node* current = *head;
+
+    // Traverse the list to find the node
     while (current != NULL) {
-        if (current->data == (uint16_t)data) {
-            if (prev == NULL) {
-                *head = current->next;
-            } else {
-                prev->next = current->next;
-            }
-            mem_free(current);
-            return;
+        if (current->data == data) {
+            return current;  // Node found
         }
-        prev = current;
         current = current->next;
     }
-    fprintf(stderr, "Error: Data %d not found in the list.\n", data);
+
+    printf("Node with data %d not found.\n", data);
+    return NULL;  // Node not found
 }
 
-Node* list_search(Node* head, int data){
-    Node* current = head;
-    while (current != NULL)
-    {
-        if (current->data == (uint16_t)data) {
-            return current;
-        }
-        current = current->next;
-    }
-    return NULL;
-    
-}
-void list_display(Node** head, Node* start_node, Node* end_node){
+// Display all nodes in the linked list
+void list_display(Node** head) {
+    Node* temp = *head;
     printf("[");
-    Node *current = head;
-    while (current != NULL) {
-        printf("%u", current->data);
-        if (current->next != NULL) {
+
+    while (temp != NULL) {
+        printf("%d", temp->data);
+        temp = temp->next;
+
+        if (temp != NULL) {
             printf(", ");
         }
-        current = current->next;
     }
     printf("]\n");
 }
 
-int list_count_nodes(Node** head){
-    int count = 0;
-    Node *current = head;
-    while (current != NULL)
-    {
-        count++;
+// Display the nodes in a range (from start_node to end_node)
+void list_display_range(Node** head, Node* start_node, Node* end_node) {
+    Node* current = (start_node == NULL) ? *head : start_node;
+
+    printf("[");
+    while (current != NULL) {
+        printf("%d", current->data);
+        if (current == end_node) {
+            break;
+        }
         current = current->next;
+        if (current != NULL && current != end_node) {
+            printf(", ");
+        }
     }
-    return count;
-    
+    printf("]\n");
 }
 
-void list_cleanup(Node** head){
-    if (head == NULL || *head == NULL) {
-        return;
+// Count the number of nodes in the list
+int list_count_nodes(Node** head) {
+    int count = 0;
+    Node* temp = *head;
+
+    while (temp != NULL) {
+        count++;
+        temp = temp->next;
     }
-    Node *current = *head;
-    while (current != NULL) 
-    {
-        Node *next_node = current->next;
-        mem_free(current);
+
+    return count;
+}
+
+// Free all nodes in the linked list
+void list_cleanup(Node** head) {
+    Node* current = *head;
+    Node* next_node;
+
+    while (current != NULL) {
+        next_node = current->next;
+        mem_free(current);  // Use custom memory manager to free memory
         current = next_node;
     }
-    *head = NULL;
-    mem_deinit();
-    
+
+    *head = NULL;  // Set head to NULL after cleanup
 }
+
