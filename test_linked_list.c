@@ -293,8 +293,14 @@ void test_list_display()
 
     // Test case 1: Displaying full list
     capture_stdout(buffer, sizeof(buffer), (void (*)(Node **, Node *, Node *))list_display_range, &head, NULL, NULL);
+
+    // Print both the expected and actual string for comparison
+    printf("Expected string: %s\n", stringFull);
+    printf("Actual string:   %s\n", buffer);
+
     my_assert(strcmp(buffer, stringFull) == 0);
     printf("\tFull list: %s\n", buffer);
+
 
     // Test case 2: Displaying list from second node to end
     memset(buffer, 0, sizeof(buffer)); // Clear buffer
