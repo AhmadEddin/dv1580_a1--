@@ -42,91 +42,42 @@ void mem_init(size_t size) {
 }
 
 // Allocate memory from the pool
-void* mem_alloc(size_t size) {
-    // If requested size is zero, return the next available block without allocating
-    if (size == 0) {
-        printf("Requested memory size is zero. Returning a pointer to the next available block.\n");
-
-        // Traverse the free list to find the first free block and return its pointer
-        Block* current = free_list;
-        while (current != NULL) {
-            if (current->free) {
-                printf("Returning block at %p for zero-sized allocation.\n", (void*)current);
-                return (char*)current + BLOCK_SIZE;  // Return pointer to usable memory
-            }
-            current = current->next;
-        }
-
-        printf("No free block available for zero-sized allocation.\n");
-        return NULL;
-    }
-
-    // Print memory allocation attempt
-    printf("Attempting to allocate %zu bytes.\n", size);
-
+void* mem_alloc(size_t requested_size) {
+    printf("Attempting to allocate %zu bytes\n", requested_size);
     Block* current = free_list;
 
-    // Print the initial state of the free list
-    printf("Initial free list:\n");
-    Block* temp = free_list;
-    while (temp != NULL) {
-        printf("Block at %p: size = %zu, free = %d\n", (void*)temp, temp->size, temp->free);
-        temp = temp->next;
-    }
-
-    // Traverse the free list to find the first suitable block
     while (current != NULL) {
-        printf("Checking block at %p: size = %zu, free = %d\n", (void*)current, current->size, current->free);
+        printf("Checking block at %p: size=%zu, is_free=%d\n", (void*)current, current->size, current->free);
 
-        if (current->free && current->size >= size) {
-            printf("Found suitable block at %p: size = %zu\n", (void*)current, current->size);
+        if (current->free && current->size >= requested_size) {
+            size_t remaining_size = current->size - requested_size;
 
-            size_t remaining_size = current->size - size;
-            printf("Remaining size after allocation: %zu\n", remaining_size);
-
-            // If there is enough space to split the block
-            if (remaining_size >= MIN_SPLIT_SIZE) {
-                printf("Splitting block at %p\n", (void*)current);
-
-                Block* new_block = (Block*)((char*)current + BLOCK_SIZE + size);
+            // If there's enough space to split the block
+            if (remaining_size > sizeof(Block)) {
+                Block* new_block = (Block*)((char*)current + requested_size + sizeof(Block));
                 new_block->size = remaining_size;
                 new_block->free = true;
                 new_block->next = current->next;
 
                 current->next = new_block;
-                current->size = size;  // Resize the current block to the requested size
-
-                printf("Created new block at %p: size = %zu\n", (void*)new_block, new_block->size);
+                current->size = requested_size;
             } else {
-                // If remaining size is too small, allocate the entire block
-                printf("Allocating the entire block at %p (no split)\n", (void*)current);
-                size = current->size;  // Adjust requested size to the full block size
+                requested_size = current->size;  // Allocate the whole block
             }
 
-            // Mark the current block as used
             current->free = false;
-            used_memory_size += current->size + BLOCK_SIZE;
+            printf("Allocated %zu bytes at %p\n", requested_size, (void*)current);
 
-            // Print memory allocation details
-            printf("Allocated %zu bytes at %p\n", size, (void*)current);
-
-            // Return a pointer to the usable memory (just after the block metadata)
-            return (char*)current + BLOCK_SIZE;
+            // Return pointer to usable memory
+            return (char*)current + sizeof(Block);
         }
 
-        // Move to the next block in the list
-        printf("Block at %p is either not free or too small\n", (void*)current);
         current = current->next;
     }
 
-    // If no suitable block was found, return NULL
     printf("Memory allocation failed: no suitable block found.\n");
     return NULL;
 }
-
-
-
-
 
 // Free allocated memory block
 void mem_free(void* block) {
@@ -137,6 +88,13 @@ void mem_free(void* block) {
 
     // Find the block metadata by subtracting the size of the Block struct
     Block* block_to_free = (Block*)((char*)block - BLOCK_SIZE);
+
+    // Check if the block is already free (double free check)
+    if (block_to_free->free) {
+        printf("Error: Attempt to free an already freed block at %p.\n", (void*)block_to_free);
+        return;
+    }
+
     block_to_free->free = true;
     used_memory_size -= block_to_free->size + BLOCK_SIZE;
 
@@ -145,13 +103,17 @@ void mem_free(void* block) {
     // Coalesce adjacent free blocks to avoid fragmentation
     Block* current = free_list;
     while (current != NULL && current->next != NULL) {
+        // Check if current block and next block are both free
         if (current->free && current->next->free) {
-            current->size += current->next->size + BLOCK_SIZE;
-            current->next = current->next->next;
-            printf("Merged adjacent free blocks at %p, new size: %zu bytes.\n", (void*)current, current->size);
-        } else {
-            current = current->next;
+            // Ensure that the blocks are contiguous in memory
+            if ((char*)current + current->size + BLOCK_SIZE == (char*)current->next) {
+                // Merge the two blocks
+                current->size += current->next->size + BLOCK_SIZE;
+                current->next = current->next->next;  // Update the next pointer
+                printf("Merged adjacent free blocks at %p, new size: %zu bytes.\n", (void*)current, current->size);
+            }
         }
+        current = current->next;
     }
 }
 
